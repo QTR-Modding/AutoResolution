@@ -1,4 +1,7 @@
+#pragma once
+
 #include "Utils.h"
+#include "SettingsLogic.h"
 
 void GetINISettings();
 void ReadWriteDisplayTweaksINI();

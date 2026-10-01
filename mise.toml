@@ -1,0 +1,8 @@
+[tools]
+cmake = "3.31"
+# [msvc](https://aka.ms/vs/stable/vs_BuildTools.exe)
+ninja = "1.12"
+
+[tasks.build]
+env = { CMAKE_BUILD_THREADS = 4 }
+run = 'cmake --build --preset release --parallel %CMAKE_BUILD_THREADS%'

@@ -2,4 +2,5 @@
 .vs
 .vscode/settings.json
 build
-cmake-build*
+external/**
+!external/.gitkeep

@@ -7,18 +7,19 @@
     "fast-cpp-csv-parser",
     "rsm-binary-io",
     "simpleini",
-    "spdlog",
+    {
+      "name": "spdlog",
+      "version>=": "1.16.0"
+    },
+    {
+      "name": "fmt",
+      "version>=": "12.1.0"
+    },
     "xbyak",
     "rapidcsv",
     "directxmath",
     "directxtk",
     "boost-stl-interfaces"
-  ],
-  "overrides": [
-    {
-      "name": "fmt",
-      "version": "9.1.0"
-    }
   ],
   "builtin-baseline": "78b61582c9e093fda56a01ebb654be15a0033897"
 }

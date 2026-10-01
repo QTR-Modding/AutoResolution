@@ -1,7 +1,11 @@
 #include "Settings.h"
 
+#include <SimpleIni.h>
+
+#include <format>
+
 namespace Settings {
-    inline float ratio = 1.0f;
+    inline float ratio = kDefaultRatio;
 };
 
 void GetINISettings() {
@@ -27,8 +31,8 @@ void GetINISettings() {
     ini.SetUnicode();
     ini.LoadFile(std::format("Data/SKSE/Plugins/{}.ini", Utilities::mod_name).c_str());
 
-    const float new_ratio = ini.GetDoubleValue("Settings", "fRatio", Settings::ratio);
-    Settings::ratio = std::min(std::max(new_ratio, 0.1f), 1.0f);
+    const float new_ratio = static_cast<float>(ini.GetDoubleValue("Settings", "fRatio", Settings::ratio));
+    Settings::ratio = Settings::ClampRatio(new_ratio);
     logger::info("fRatio: {}", Settings::ratio);
 
     // write the value back to the INI file
@@ -39,41 +43,49 @@ void GetINISettings() {
     logger::info("INI file updated.");
 }
 void ReadWriteDisplayTweaksINI()
-{   
-	if (std::filesystem::exists(Utilities::display_tweaks_custom_ini)) {
-		logger::info("SSEDisplayTweaks_custom.ini exists.");
-		return ReadWriteDisplayTweaksINI(Utilities::display_tweaks_custom_ini.c_str());
+{
+	const auto filepath = Settings::SelectDisplayTweaksINI(
+		Utilities::display_tweaks_custom_ini,
+		Utilities::display_tweaks_ini);
+	if (filepath.empty()) {
+		logger::info("SSEDisplayTweaks.ini does not exist.");
+		return;
 	}
 
-    if (std::filesystem::exists(Utilities::display_tweaks_ini)) {
-		logger::info("SSEDisplayTweaks.ini exists.");
-		return ReadWriteDisplayTweaksINI(Utilities::display_tweaks_ini.c_str());
-	}
-	logger::info("SSEDisplayTweaks.ini does not exist.");
-	return;
+	logger::info("Using {}.", filepath.filename().string());
+	return ReadWriteDisplayTweaksINI(filepath.string().c_str());
 };
 
 void ReadWriteDisplayTweaksINI(const char* filepath) {
     // first make sure the INI file exists
     CSimpleIniA ini;
     ini.SetUnicode();
-    ini.LoadFile(filepath);
-    
-    // get user's actual windows display resolution
-    auto displayWidth = GetSystemMetrics(SM_CXSCREEN);
-    auto displayHeight = GetSystemMetrics(SM_CYSCREEN);
+    if (ini.LoadFile(filepath) != SI_OK) {
+        logger::error("Failed to load {}; INI unchanged.", filepath);
+        return;
+    }
+
+    // Get the user's actual Windows display resolution in physical pixels.
+    DEVMODEW displayMode{};
+    displayMode.dmSize = sizeof(displayMode);
+
+    if (!EnumDisplaySettingsW(nullptr, ENUM_CURRENT_SETTINGS, &displayMode) ||
+        displayMode.dmPelsWidth == 0 || displayMode.dmPelsHeight == 0) {
+        logger::error("Failed to retrieve a valid current display resolution; INI unchanged.");
+        return;
+    }
+
+    auto displayWidth = displayMode.dmPelsWidth;
+    auto displayHeight = displayMode.dmPelsHeight;
     logger::info("Display resolution: {}x{}", displayWidth, displayHeight);
     logger::info("Ratio: {}", Settings::ratio);
 
-    // apply the ratio to the display resolution
-    displayWidth = displayWidth * Settings::ratio;
-    displayHeight = displayHeight * Settings::ratio;
+    const auto resolution = Settings::ScaleResolution(displayWidth, displayHeight, Settings::ratio);
 
-    const auto windows_resolution = fmt::format("{}x{}", displayWidth, displayHeight);
-    
-    auto resolutions = ini.GetValue("Render", "Resolution", windows_resolution.c_str());
+    auto resolutions = ini.GetValue("Render", "Resolution", "");
     logger::info("Resolution: {}", resolutions);
-    // set the Display Tweaks resolution to the user's display resolution
-    ini.SetValue("Render", "Resolution", windows_resolution.c_str());
-    ini.SaveFile(filepath);
+
+    if (!Settings::UpdateDisplayTweaksINI(filepath, resolution)) {
+        logger::error("Failed to update {}.", filepath);
+    }
 };
