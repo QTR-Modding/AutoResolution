@@ -2,9 +2,8 @@
   "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
   "name": "pressedisplaytweaks",
   "version-string": "1.2.0.0",
+  "license": "GPL-3.0-or-later",
   "dependencies": [
-    "fast-cpp-csv-parser",
-    "rsm-binary-io",
     {
       "name": "simpleini",
       "version>=": "4.25"
@@ -16,10 +15,6 @@
     {
       "name": "fmt",
       "version>=": "12.1.0"
-    },
-    {
-      "name": "xbyak",
-      "version>=": "7.28"
     },
     {
       "name": "rapidcsv",

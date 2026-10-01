@@ -64,7 +64,7 @@ include(${COMMONLIB_SRC_DIR}/cmake/CommonLibSSE.cmake)
 
 add_commonlibsse_plugin(
   ${PROJECT_NAME}
-  AUTHOR AUTHOR_NAME
+  AUTHOR "${AUTHOR_NAME}"
   SOURCES ${headers} ${sources}
 )
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_23) # <--- use C++23 standard
@@ -81,3 +81,30 @@ set(wildlander_output false)
 set(steam_owrt_output false)
 set(steam_mods_output true)
 automaticGameFolderOutput(wildlander_output, steam_owrt_output, steam_mods_output)
+
+find_package(Git REQUIRED)
+execute_process(
+  COMMAND "${GIT_EXECUTABLE}" rev-parse HEAD
+  WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+  OUTPUT_VARIABLE SOURCE_REVISION
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+  COMMAND_ERROR_IS_FATAL ANY
+)
+configure_file(cmake/source.txt.in SOURCE.txt @ONLY)
+
+install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION SKSE/Plugins COMPONENT AutoResolution)
+install(FILES LICENSE NOTICE EXCEPTIONS.md "${CMAKE_CURRENT_BINARY_DIR}/SOURCE.txt"
+  DESTINATION licenses/AutoResolution COMPONENT AutoResolution)
+install(FILES licenses/LICENSE-MIT.txt
+  DESTINATION licenses/AutoResolution COMPONENT AutoResolution)
+install(FILES "${COMMONLIB_SRC_DIR}/COPYING.txt" "${COMMONLIB_SRC_DIR}/EXCEPTIONS.md"
+  DESTINATION licenses/AutoResolution/CommonLibSSE-NG COMPONENT AutoResolution)
+install(DIRECTORY "${COMMONLIB_SRC_DIR}/licenses/"
+  DESTINATION licenses/AutoResolution/CommonLibSSE-NG COMPONENT AutoResolution
+  FILES_MATCHING PATTERN "LICENSE-*.txt")
+install(FILES "${COMMONLIB_SRC_DIR}/extern/openvr/LICENSE"
+  DESTINATION licenses/AutoResolution/OpenVR COMPONENT AutoResolution)
+foreach(dependency directxmath directxtk fmt rapidcsv simpleini spdlog)
+  install(FILES "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/share/${dependency}/copyright"
+    DESTINATION "licenses/AutoResolution/${dependency}" COMPONENT AutoResolution)
+endforeach()
