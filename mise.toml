@@ -5,4 +5,4 @@ ninja = "1.12"
 
 [tasks.build]
 env = { CMAKE_BUILD_THREADS = 4 }
-run = 'cmake --build --preset release --parallel %CMAKE_BUILD_THREADS%'
+run = 'cmake --build build/release --parallel %CMAKE_BUILD_THREADS%'
