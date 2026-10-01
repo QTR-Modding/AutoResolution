@@ -1,0 +1,181 @@
+name: Build and Release
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, closed]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    if: >-
+      github.event.action != 'closed' ||
+      (github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'main')
+    runs-on: windows-2022
+    strategy:
+      fail-fast: false
+      matrix:
+        configuration: [debug, release]
+    steps:
+      - name: Check out PR or merge commit
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.event.pull_request.merged && github.event.pull_request.merge_commit_sha || github.event.pull_request.head.sha }}
+
+      - name: Set up MSVC
+        uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1
+        with:
+          arch: x64
+
+      - name: Configure and build
+        env:
+          CONFIGURATION: ${{ matrix.configuration }}
+        run: |
+          cmake --preset $env:CONFIGURATION
+          if ($LASTEXITCODE -ne 0) { throw "CMake configure failed" }
+          cmake --build "build/$env:CONFIGURATION" --parallel
+          if ($LASTEXITCODE -ne 0) { throw "CMake build failed" }
+
+      - name: Package build
+        env:
+          CONFIGURATION: ${{ matrix.configuration }}
+        run: |
+          $package = Join-Path $env:RUNNER_TEMP "package-$env:CONFIGURATION"
+          $plugin = Join-Path $package 'SKSE/Plugins'
+          $dll = Join-Path $env:GITHUB_WORKSPACE "build/$env:CONFIGURATION/PreSSEDisplayTweaks.dll"
+          $ini = Join-Path $plugin 'PreSSEDisplayTweaks.ini'
+          $zip = Join-Path $env:RUNNER_TEMP "PreSSEDisplayTweaks.$env:CONFIGURATION.zip"
+
+          if (-not (Test-Path $dll)) { throw "Build output not found: $dll" }
+          New-Item -ItemType Directory -Path $plugin -Force | Out-Null
+          Copy-Item $dll (Join-Path $plugin 'PreSSEDisplayTweaks.dll')
+
+          $iniContents = "[Settings]`nfRatio = 1.000000`n"
+          [System.IO.File]::WriteAllText($ini, $iniContents, [System.Text.UTF8Encoding]::new($false))
+          if ([System.IO.File]::ReadAllText($ini) -cne $iniContents) { throw 'Generated INI contents did not match the required default.' }
+
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          [System.IO.Compression.ZipFile]::CreateFromDirectory(
+            $package,
+            $zip,
+            [System.IO.Compression.CompressionLevel]::Optimal,
+            $false
+          )
+
+          $archive = [System.IO.Compression.ZipFile]::OpenRead($zip)
+          try {
+            $entries = @($archive.Entries | ForEach-Object FullName | Sort-Object)
+            $expected = @(
+              'SKSE/Plugins/PreSSEDisplayTweaks.dll',
+              'SKSE/Plugins/PreSSEDisplayTweaks.ini'
+            ) | Sort-Object
+            if (Compare-Object $expected $entries) { throw "Unexpected ZIP contents: $($entries -join ', ')" }
+          }
+          finally {
+            $archive.Dispose()
+          }
+
+          Copy-Item $zip (Join-Path $package "PreSSEDisplayTweaks.$env:CONFIGURATION.zip")
+
+      - name: Upload build package
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: package-${{ matrix.configuration }}
+          path: ${{ runner.temp }}/package-${{ matrix.configuration }}
+          if-no-files-found: error
+          retention-days: 14
+          overwrite: true
+
+  release:
+    if: >-
+      github.event.action == 'closed' &&
+      github.event.pull_request.merged == true &&
+      github.event.pull_request.base.ref == 'main'
+    needs: build
+    runs-on: windows-2022
+    permissions:
+      contents: write
+    steps:
+      - name: Check out merged commit
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+
+      - name: Download Debug package
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: package-debug
+          path: ${{ runner.temp }}/package-debug
+
+      - name: Download Release package
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: package-release
+          path: ${{ runner.temp }}/package-release
+
+      - name: Prepare release assets
+        env:
+          DEBUG_PACKAGE: ${{ runner.temp }}/package-debug
+          RELEASE_PACKAGE: ${{ runner.temp }}/package-release
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          MERGED_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+        run: |
+          $assets = Join-Path $env:RUNNER_TEMP 'release-assets'
+          New-Item -ItemType Directory -Path $assets -Force | Out-Null
+
+          $debugDll = Join-Path $env:DEBUG_PACKAGE 'SKSE/Plugins/PreSSEDisplayTweaks.dll'
+          $releaseDll = Join-Path $env:RELEASE_PACKAGE 'SKSE/Plugins/PreSSEDisplayTweaks.dll'
+          $debugIni = Join-Path $env:DEBUG_PACKAGE 'SKSE/Plugins/PreSSEDisplayTweaks.ini'
+          $releaseIni = Join-Path $env:RELEASE_PACKAGE 'SKSE/Plugins/PreSSEDisplayTweaks.ini'
+          $debugZip = Join-Path $env:DEBUG_PACKAGE 'PreSSEDisplayTweaks.debug.zip'
+          $releaseZip = Join-Path $env:RELEASE_PACKAGE 'PreSSEDisplayTweaks.release.zip'
+
+          foreach ($file in @($debugDll, $releaseDll, $debugIni, $releaseIni, $debugZip, $releaseZip)) {
+            if (-not (Test-Path $file)) { throw "Required release file not found: $file" }
+          }
+
+          $expectedIni = "[Settings]`nfRatio = 1.000000`n"
+          foreach ($file in @($debugIni, $releaseIni)) {
+            if ([System.IO.File]::ReadAllText($file) -cne $expectedIni) { throw "Unexpected default INI contents: $file" }
+          }
+
+          Copy-Item $releaseDll (Join-Path $assets 'PreSSEDisplayTweaks.release.dll')
+          Copy-Item $debugDll (Join-Path $assets 'PreSSEDisplayTweaks.debug.dll')
+          Copy-Item $releaseIni (Join-Path $assets 'PreSSEDisplayTweaks.ini')
+          Copy-Item $releaseZip $assets
+          Copy-Item $debugZip $assets
+
+          $project = Get-Content CMakeLists.txt -Raw
+          $versionMatch = [regex]::Match($project, 'project\(\$\{PRODUCT_NAME\}\s+VERSION\s+([0-9.]+)')
+          if (-not $versionMatch.Success) {
+            throw 'Could not read the project version from CMakeLists.txt.'
+          }
+          $tag = "v$($versionMatch.Groups[1].Value)-build.$env:GITHUB_RUN_NUMBER"
+          "RELEASE_TAG=$tag" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Create or update GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MERGED_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          $tag = $env:RELEASE_TAG
+          $assets = Join-Path $env:RUNNER_TEMP 'release-assets'
+          $files = @(
+            (Join-Path $assets 'PreSSEDisplayTweaks.release.dll'),
+            (Join-Path $assets 'PreSSEDisplayTweaks.debug.dll'),
+            (Join-Path $assets 'PreSSEDisplayTweaks.ini'),
+            (Join-Path $assets 'PreSSEDisplayTweaks.release.zip'),
+            (Join-Path $assets 'PreSSEDisplayTweaks.debug.zip')
+          )
+          $notes = "Release built from merged PR #$env:PR_NUMBER at $env:MERGED_SHA."
+
+          gh release view $tag *> $null
+          if ($LASTEXITCODE -eq 0) {
+            gh release upload $tag @files --clobber
+          }
+          else {
+            gh release create $tag @files --target $env:MERGED_SHA --title $tag --notes $notes
+          }
+          if ($LASTEXITCODE -ne 0) { throw "Failed to publish GitHub release $tag" }

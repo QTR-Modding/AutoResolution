@@ -91,6 +91,7 @@ void GetINISettings() {
 
     logger::info("INI file updated.");
 }
+
 void ReadWriteDisplayTweaksINI()
 {
 	const auto filepath = SelectDisplayTweaksINI(
