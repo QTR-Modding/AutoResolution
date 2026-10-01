@@ -42,17 +42,6 @@ get_target_property(COMMONLIB_SRC_DIR CommonLibSSE SOURCE_DIR)
 
 find_path(SIMPLEINI_INCLUDE_DIR SimpleIni.h REQUIRED)
 
-add_library(${PROJECT_NAME}Logic STATIC
-    src/SettingsLogic.cpp
-)
-target_compile_features(${PROJECT_NAME}Logic PUBLIC cxx_std_23)
-target_include_directories(${PROJECT_NAME}Logic
-    PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}/include
-    PRIVATE
-        ${SIMPLEINI_INCLUDE_DIR}
-)
-
 file(
   GLOB_RECURSE
   sources
@@ -79,7 +68,7 @@ target_include_directories(
 	${PROJECT_NAME}
 	PRIVATE
 	${CMAKE_CURRENT_SOURCE_DIR}/include
+	${SIMPLEINI_INCLUDE_DIR}
 )
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE IS_HOST_PLUGIN)
-target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_NAME}Logic)
