@@ -93,6 +93,8 @@ execute_process(
 configure_file(cmake/source.txt.in SOURCE.txt @ONLY)
 
 install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION SKSE/Plugins COMPONENT AutoResolution)
+install(FILES config/PreSSEDisplayTweaks.ini
+  DESTINATION SKSE/Plugins COMPONENT AutoResolution)
 install(FILES LICENSE NOTICE EXCEPTIONS.md "${CMAKE_CURRENT_BINARY_DIR}/SOURCE.txt"
   DESTINATION licenses/AutoResolution COMPONENT AutoResolution)
 install(FILES licenses/LICENSE-MIT.txt
