@@ -57,15 +57,23 @@ void Settings::ReadWriteDisplayTweaksINI(const char* filepath) {
     ini.SetUnicode();
     ini.LoadFile(filepath);
     
-    // get user's actual windows display resolution
-    auto displayWidth = GetSystemMetrics(SM_CXSCREEN);
-    auto displayHeight = GetSystemMetrics(SM_CYSCREEN);
+    // Read the current display resolution in physical pixels, independent of DPI scaling.
+    DEVMODEW displayMode{};
+    displayMode.dmSize = sizeof(displayMode);
+    if (!EnumDisplaySettingsW(nullptr, ENUM_CURRENT_SETTINGS, &displayMode) ||
+        displayMode.dmPelsWidth == 0 || displayMode.dmPelsHeight == 0) {
+        logger::error("Failed to retrieve the current display resolution; INI unchanged.");
+        return;
+    }
+
+    auto displayWidth = displayMode.dmPelsWidth;
+    auto displayHeight = displayMode.dmPelsHeight;
     logger::info("Display resolution: {}x{}", displayWidth, displayHeight);
     logger::info("Ratio: {}", Settings::ratio);
 
     // apply the ratio to the display resolution
-    displayWidth = static_cast<int>(displayWidth * Settings::ratio);
-    displayHeight = static_cast<int>(displayHeight * Settings::ratio);
+    displayWidth = static_cast<DWORD>(displayWidth * Settings::ratio);
+    displayHeight = static_cast<DWORD>(displayHeight * Settings::ratio);
 
     const auto windows_resolution = fmt::format("{}x{}", displayWidth, displayHeight);
     

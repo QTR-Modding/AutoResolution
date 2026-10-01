@@ -5,17 +5,30 @@
   "dependencies": [
     "fast-cpp-csv-parser",
     "rsm-binary-io",
-    "simpleini",
-    "spdlog",
-    "xbyak",
-    "rapidcsv",
-    "directxtk"
-  ],
-  "overrides": [
+    {
+      "name": "simpleini",
+      "version>=": "4.25"
+    },
+    {
+      "name": "spdlog",
+      "version>=": "1.16.0"
+    },
     {
       "name": "fmt",
-      "version": "9.1.0"
+      "version>=": "12.1.0"
+    },
+    {
+      "name": "xbyak",
+      "version>=": "7.28"
+    },
+    {
+      "name": "rapidcsv",
+      "version>=": "8.90"
+    },
+    {
+      "name": "directxtk",
+      "version>=": "2025-10-27"
     }
   ],
-  "builtin-baseline": "78b61582c9e093fda56a01ebb654be15a0033897"
+  "builtin-baseline": "ee12231b20c95013c6638d845d04c91559a1d1ff"
 }

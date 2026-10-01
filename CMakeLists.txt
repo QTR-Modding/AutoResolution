@@ -1,6 +1,10 @@
+cmake_minimum_required(VERSION 3.21)
 
-if(NOT DEFINED ENV{COMMONLIB_SSE_FOLDER})
-  message(FATAL_ERROR "Missing COMMONLIB_SSE_FOLDER environment variable")
+set(_COMMONLIB_SUBMODULE "${CMAKE_CURRENT_SOURCE_DIR}/extern/CommonLibSSE")
+if(NOT EXISTS "${_COMMONLIB_SUBMODULE}/CMakeLists.txt")
+  message(FATAL_ERROR
+    "CommonLibSSE not found. Initialize the pinned submodule:\n"
+    "  git submodule update --init --recursive extern/CommonLibSSE")
 endif()
 
 include(cmake/headerlist.cmake)
@@ -10,9 +14,6 @@ include(cmake/lib/automaticGameFolderOutput.cmake)
 
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 
-# It's recommended to set a minimum CMake version.
-# If you use CMake features from higher versions, update this to match.
-cmake_minimum_required(VERSION 3.21)
 # Set your project name. This will be the name of your SKSE .dll file.
 set(AUTHOR_NAME "Quantumyilmaz")
 set(PRODUCT_NAME "PreSSEDisplayTweaks")
@@ -43,7 +44,7 @@ set(ENABLE_SKYRIM_AE ON CACHE BOOL " " FORCE)
 set(ENABLE_SKYRIM_VR ON CACHE BOOL " " FORCE)
 set(BUILD_TESTS OFF CACHE BOOL " " FORCE)
 
-add_subdirectory("$ENV{COMMONLIB_SSE_FOLDER}" ${CMAKE_CURRENT_BINARY_DIR}/_deps/clib-build)
+add_subdirectory("${_COMMONLIB_SUBMODULE}" ${CMAKE_CURRENT_BINARY_DIR}/_deps/clib-build)
 get_target_property(COMMONLIB_SRC_DIR CommonLibSSE SOURCE_DIR)
 
 file(
