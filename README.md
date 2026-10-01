@@ -21,7 +21,7 @@ creates this file with `fRatio=1.0` if it is missing.
 2. Set `VCPKG_ROOT` to your [vcpkg](https://github.com/microsoft/vcpkg) directory.
 3. From an x64 Visual Studio developer shell with C++23 support, the Windows SDK,
    CMake and Ninja, run `cmake --preset release`, then `cmake --build build/release --parallel`.
-4. To stage the DLL and required license/source notices, run
+4. To stage the DLL, default INI and required license/source notices, run
    `cmake --install build/release --component AutoResolution --prefix build/package`.
 
 For an existing clone, run `git submodule update --init --recursive` before building.
