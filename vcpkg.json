@@ -1,24 +1,29 @@
 {
   "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
   "name": "pressedisplaytweaks",
-  "version-string": "1.1.0.0",
+  "version-string": "1.2.0.0",
+  "license": "GPL-3.0-or-later",
   "dependencies": [
-    "rapidjson",
-    "fast-cpp-csv-parser",
-    "rsm-binary-io",
-    "simpleini",
-    "spdlog",
-    "xbyak",
-    "rapidcsv",
-    "directxmath",
-    "directxtk",
-    "boost-stl-interfaces"
-  ],
-  "overrides": [
+    {
+      "name": "simpleini",
+      "version>=": "4.25"
+    },
+    {
+      "name": "spdlog",
+      "version>=": "1.16.0"
+    },
     {
       "name": "fmt",
-      "version": "9.1.0"
+      "version>=": "12.1.0"
+    },
+    {
+      "name": "rapidcsv",
+      "version>=": "8.90"
+    },
+    {
+      "name": "directxtk",
+      "version>=": "2025-10-27"
     }
   ],
-  "builtin-baseline": "78b61582c9e093fda56a01ebb654be15a0033897"
+  "builtin-baseline": "ee12231b20c95013c6638d845d04c91559a1d1ff"
 }

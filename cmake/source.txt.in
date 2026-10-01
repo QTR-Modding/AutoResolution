@@ -1,0 +1,27 @@
+Auto Resolution @PROJECT_VERSION@ corresponding source
+
+Plugin source: https://github.com/QTR-Modding/AutoResolution/tree/@SOURCE_REVISION@
+CommonLibSSE-NG: https://github.com/alandtse/CommonLibSSE-NG/tree/39f9d07a6ffabea8fb559eee87ab7d27cd463e8a
+OpenVR: https://github.com/ValveSoftware/openvr/tree/60eb187801956ad277f1cae6680e3a410ee0873b
+hde64: https://github.com/TsudaKageyu/minhook/tree/v1.3.4/src/hde
+vcpkg dependency recipes: https://github.com/microsoft/vcpkg/tree/ee12231b20c95013c6638d845d04c91559a1d1ff
+
+To retrieve the exact plugin and submodule sources:
+  git clone https://github.com/QTR-Modding/AutoResolution.git
+  cd AutoResolution
+  git checkout @SOURCE_REVISION@
+  git submodule update --init --recursive
+
+Install Visual Studio with the x64 C++ tools, C++23 support and Windows SDK,
+CMake, Ninja, and vcpkg. Set VCPKG_ROOT to the vcpkg directory. In an x64
+Visual Studio developer shell:
+  cmake --preset release
+  cmake --build build/release --parallel
+  cmake --install build/release --component AutoResolution --prefix build/package
+
+Configuration retrieves hde64 at MinHook v1.3.4. vcpkg retrieves dependencies
+at the manifest's pinned baseline, either from source or its binary cache.
+For dependency sources, use a fresh build directory with the environment
+variable VCPKG_BINARY_SOURCES set to clear before configuration. The sources
+are then under vcpkg's buildtrees and build/release/_deps/hde64-src. The recipes
+above give their source URLs and checksums.
